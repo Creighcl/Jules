@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class BattlefieldPosition
+public class BattlefieldPosition : ICombatPosition
 {
     public BattlefieldPosition(Vector3 position, int spotId, int relationalReferenceId)
     {

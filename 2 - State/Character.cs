@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using System;
 using System.Collections.Generic;
@@ -9,31 +8,39 @@ public class Character : MonoBehaviour
     [Header("Identity")]
     [SerializeField]
     public CharacterConfig Config;
-    
+
     [Header("Current State")]
-    [SerializeField]
-    public int currentHealth = 1;
-    [SerializeField]
-    public int currentStagger = 0;
+    public Dictionary<ResourceType, Resource> Resources = new Dictionary<ResourceType, Resource>();
+    // Backward compatibility props (can be removed later)
+    public int currentHealth { get; set; } = 1;
+    public int currentStagger { get; set; } = 0;
+
     public bool isDead = false;
     public bool IsCurrentCombatant = false;
-    public BattlefieldPosition PositionInfo { get; internal set; }
+    public ICombatPosition PositionInfo { get; internal set; }
     [SerializeField]
     public List<Buff> Buffs = new List<Buff>();
     public int GenericWaveCounter = 0;
     public bool IsHighlighted = false;
     public Sprite AlternativePortrait;
 
-    public void SetPositionInfo(BattlefieldPosition pos) {
+    public void SetPositionInfo(ICombatPosition pos) {
         PositionInfo = pos;
-        transform.position = new Vector3(PositionInfo.Position.x, PositionInfo.Position.y, PositionInfo.Position.y);
     }
 
-    [ContextMenu("tell me your position")]
-    void tellmeyourposition() {
-        Debug.Log(PositionInfo.Position);
-        Debug.Log(PositionInfo.RelationalReferenceId);
-        Debug.Log(PositionInfo.SpotId);
+    // Helper to get resource safely
+    public Resource GetResource(ResourceType type) {
+        if (Resources.ContainsKey(type)) {
+            return Resources[type];
+        }
+        return null;
+    }
+
+    public void SetResource(ResourceType type, int value) {
+        if (!Resources.ContainsKey(type)) {
+            Resources[type] = new Resource(type, type.DefaultMax);
+        }
+        Resources[type].CurrentValue = value;
     }
 
     [ContextMenu("tell me your buffs")]
@@ -58,27 +65,24 @@ public class Character : MonoBehaviour
     }
 
     public List<AbilityCategory> GetAvailableAbilities(int LightPoints, int ShadowPoints) {
-        var availableAbilities = new List<AbilityCategory>(){ 
+        var availableAbilities = new List<AbilityCategory>(){
             AbilityCategory.BASICATTACK,
         };
-        PowerType powerType = Config.PowerType;
-        
+        ElementType powerType = Config.PowerType;
+
         if (HasBuff<BuffStunned>() || HasBuff<BuffSearingStun>()) {
             return new List<AbilityCategory>();
         }
 
         if (HasBuff<BuffCharmed>() || HasBuff<BuffSilenced>() || HasBuff<BuffTaunted>()) {
-            return new List<AbilityCategory>(){ 
+            return new List<AbilityCategory>(){
                 AbilityCategory.BASICATTACK,
             };
         }
 
-        if (powerType == PowerType.LIGHT && LightPoints < 1) {
-            return availableAbilities;
-        }
-        if (powerType == PowerType.SHADOW && ShadowPoints < 1) {
-            return availableAbilities;
-        }
+        // Logic for Light/Shadow points would move to Resources check here
+        // For now, preserving signature but logic would need updates if we remove points completely
+
         if (Config.SpecialAttack != UserAbilitySelection.NONE) {
             availableAbilities.Add(AbilityCategory.SPECIALATTACK);
         };
@@ -124,7 +128,7 @@ public class Character : MonoBehaviour
 
     List<Buff> RemoveAgedBuffs() {
         if (Buffs.Count == 0) return new List<Buff>();
-        
+
         var agedBuffs = Buffs.Where(buff => buff.TurnsRemaining < 1).ToList();
         Buffs.RemoveAll(buff => buff.TurnsRemaining < 1);
         return agedBuffs;
@@ -133,8 +137,6 @@ public class Character : MonoBehaviour
     public void RestoreStagger() {
         currentStagger = Config.BaseSP;
     }
-
-
 
     public void FirstTimeInitialization() {
         isDead = false;

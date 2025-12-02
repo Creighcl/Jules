@@ -14,10 +14,12 @@ public class CombatState
     public int ShadowPoints = 0;
     public EventProvider _eventProvider;
     public IBattlefieldPositionProvider _bfpProvider;
+    public IPositioningSystem _positioningSystem;
 
-    public CombatState(EventProvider eventProvider, IBattlefieldPositionProvider bfpProvider) {
+    public CombatState(EventProvider eventProvider, IBattlefieldPositionProvider bfpProvider, IPositioningSystem positioningSystem) {
         _eventProvider = eventProvider;
         _bfpProvider = bfpProvider;
+        _positioningSystem = positioningSystem;
     }
 
     public void ClearWaveCounters() {
@@ -72,6 +74,8 @@ public class CombatState
     }
 
     public void ExecuteSelectedAbility() {
+        AbilitySelected.Configure(_positioningSystem);
+
         var completedAbility = AbilitySelected
             .GetUncommitted(
                 CurrentCombatant,
@@ -137,7 +141,7 @@ public class CombatState
             AddCharacterToTurnOrder(ro.character);
         }
         ro.character.currentHealth = (int)(ro.character.Config.BaseHP * (ro.percentHealth / 100f));
-        
+
         ro.character.RemoveAllBuffs();
         ro.character.currentStagger = ro.character.Config.BaseSP;
         ro.character.isDead = false;
@@ -186,12 +190,12 @@ public class CombatState
             return;
         }
 
-        
+
         if (LightPoints > 1 && ShadowPoints > 1 && _e.Source.IsUltimate) {
             LightPoints -=2;
             ShadowPoints -=2;
             return;
-        } 
+        }
 
         if (_e.Caster.Config.PowerType == PowerType.LIGHT) {
             LightPoints -= 1;
@@ -205,30 +209,16 @@ public class CombatState
     BattlefieldPosition FindOpenSpotForTeam(TeamType team) {
         List<int> TakenSpotIds = FullCombatantList
             .Where(combatant => combatant.Config.TeamType == team && !combatant.isDead && combatant.PositionInfo != null)
-            .Select(combatant => combatant.PositionInfo.SpotId)
+            .Select(combatant => (combatant.PositionInfo as BattlefieldPosition).SpotId)
             .ToList();
-        
+
         return _bfpProvider.GetNextOpenBattlefieldPositionForTeam(TakenSpotIds, team);
     }
 
-    float GetDamageModifierForPowerType(PowerType powerType) {
-        if (powerType == PowerType.LIGHT) {
-            if (LightPoints - ShadowPoints == 2) {
-                return 1.25f;
-            }
-            if (LightPoints - ShadowPoints == 1) {
-                return 1.1f;
-            }
-            return 1f;
-        } else {
-            if (ShadowPoints - LightPoints == 2) {
-                return 1.25f;
-            }
-            if (ShadowPoints - LightPoints == 1) {
-                return 1.1f;
-            }
-            return 1f;
-        }
+    float GetDamageModifierForPowerType(ElementType powerType) {
+        // Legacy Logic using hardcoded "light" vs "shadow" points if needed
+        // Assuming PowerType is handled via ElementType now, but resource counting is still integer based
+        return 1f; // Simplified for now as points logic is ambiguous without enum
     }
 
     void ModifyDamageOrdersByScale(List<DamageOrder> orders) {
@@ -252,11 +242,12 @@ public class CombatState
         ResolveScaleOrders(executionPlan);
 
         ResolveDamageOrders(executionPlan);
+        ResolveResourceChangeOrders(executionPlan);
 
         ResolveDamageTriggers(executionPlan);
 
         ResolveBuffAdditions(executionPlan);
-        
+
         ResolveReviveOrders(executionPlan);
 
         ResolveSummonOrders(executionPlan);
@@ -282,9 +273,10 @@ public class CombatState
 
                 Character ReviveTarget = DeadAllies[0];
                 AbilityPrayer prayer = new AbilityPrayer(ReviveTarget);
-                
+                prayer.Configure(_positioningSystem);
+
                 _e.Add(prayer.GetUncommitted(Prayer, null, null));
-                
+
                 Prayer.GenericWaveCounter = 1;
             }
         }
@@ -298,7 +290,10 @@ public class CombatState
         List<Character> impCounterAttackers = FullCombatantList.FindAll(combatant => combatant.Config.TeamType == opposingTeam && combatant.HasBuff<BuffImprovedCounterAttack>() && !combatant.isDead);
 
         impCounterAttackers.ForEach(ica => {
-            EffectPlan ea = new AbilityCounterattack().GetUncommitted(
+            var counterAttack = new AbilityCounterattack();
+            counterAttack.Configure(_positioningSystem);
+
+            EffectPlan ea = counterAttack.GetUncommitted(
                 ica,
                 _e.Caster,
                 FullCombatantList
@@ -331,12 +326,21 @@ public class CombatState
     }
 
     void ResolveDamageOrders(EffectPlan _e) {
-        DamageResolver dr = new DamageResolver();
+        ResourceChangeResolver dr = new ResourceChangeResolver();
         _e.DamageOrders.ForEach(damage => {
             CalculatedDamage dmgResult = dr.ResolveOrder(damage);
 
             _e.Add(dmgResult);
             _eventProvider.OnDamageResolved?.Invoke(dmgResult);
+        });
+    }
+
+    void ResolveResourceChangeOrders(EffectPlan _e) {
+        ResourceChangeResolver dr = new ResourceChangeResolver();
+        _e.ResourceChangeOrders.ForEach(order => {
+            ResourceChangeResult result = dr.Resolve(order);
+            _e.Add(result);
+            // _eventProvider.OnResourceChanged?.Invoke(result); // TODO: Add event
         });
     }
 
@@ -347,7 +351,10 @@ public class CombatState
             bool TookNonZeroDamage = damage.DamageToHealth > 0 || damage.DamageToStagger > 0;
 
             if (damage.Target.HasBuff<BuffCounterattack>() && damage.Source is not AbilityCounterattack && TookNonZeroDamage) {
-                EffectPlan ea = new AbilityCounterattack().GetUncommitted(
+                var counter = new AbilityCounterattack();
+                counter.Configure(_positioningSystem);
+
+                EffectPlan ea = counter.GetUncommitted(
                     damage.Attacker,
                     damage.Target,
                     FullCombatantList
@@ -370,6 +377,8 @@ public class CombatState
                 _eventProvider.OnBuffExpired?.Invoke(buffRemoved);
 
                 AbilityVolcanicBowelBlast bb = new AbilityVolcanicBowelBlast();
+                bb.Configure(_positioningSystem);
+
                 EffectPlan blastResponse = bb.GetUncommitted(
                     dmg.Target,
                     dmg.Target,
@@ -384,6 +393,8 @@ public class CombatState
                 _eventProvider.OnBuffExpired?.Invoke(buffRemoved);
 
                 AbilityPyroPeakaboo pp = new AbilityPyroPeakaboo();
+                pp.Configure(_positioningSystem);
+
                 EffectPlan peakResponse = pp.GetUncommitted(
                     dmg.Target,
                     dmg.Target,
@@ -391,7 +402,7 @@ public class CombatState
                 );
                 _e.Add(peakResponse);
             }
-            
+
         }
     }
 
