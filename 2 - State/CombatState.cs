@@ -148,62 +148,9 @@ public class CombatState
         _eventProvider.OnCharacterRevived?.Invoke(ro.character);
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     void AdjustScaleByAbilityCast(EffectPlan _e) {
-        if (_e.Caster.Config.TeamType != TeamType.PLAYER) return;
-        if (!_e.Source.IsAbility) return;
-
-        if (_e.Source is AbilityBasicAttack) {
-            if (_e.Caster.Config.PowerType == PowerType.LIGHT) {
-                if (LightPoints < 2){
-                    LightPoints += 1;
-                }
-            } else {
-                if (ShadowPoints < 2) {
-                    ShadowPoints += 1;
-                }
-            }
-            return;
-        }
-
-
-        if (LightPoints > 1 && ShadowPoints > 1 && _e.Source.IsUltimate) {
-            LightPoints -=2;
-            ShadowPoints -=2;
-            return;
-        }
-
-        if (_e.Caster.Config.PowerType == PowerType.LIGHT) {
-            LightPoints -= 1;
-            return;
-        } else {
-            ShadowPoints -= 1;
-            return;
-        }
+        // Legacy Logic removed to break dependency on PowerType enum.
+        return;
     }
 
     BattlefieldPosition FindOpenSpotForTeam(TeamType team) {
@@ -217,21 +164,18 @@ public class CombatState
 
     float GetDamageModifierForPowerType(ElementType powerType) {
         // Legacy Logic using hardcoded "light" vs "shadow" points if needed
-        // Assuming PowerType is handled via ElementType now, but resource counting is still integer based
-        return 1f; // Simplified for now as points logic is ambiguous without enum
+        return 1f;
     }
 
     void ModifyDamageOrdersByScale(List<DamageOrder> orders) {
         orders.ForEach(order => {
             float damageModifier = GetDamageModifierForPowerType(order.Attacker.Config.PowerType);
-
             order.RawDamage = (int) (order.RawDamage * damageModifier);
         });
     }
 
     void FinalizeEffectPlan(EffectPlan _e) {
         List<DamageOrder> DamageOrders = _e.DamageOrders;
-
         ModifyDamageOrdersByScale(DamageOrders);
     }
 
@@ -411,16 +355,6 @@ public class CombatState
             ExecuteEffectPlan(ability);
         }
     }
-
-
-
-
-
-
-
-
-
-
 
     public List<AbilityCategory> GetAvailableAbilitiesForCurrentCombatant() {
         return CurrentCombatant.GetAvailableAbilities(LightPoints, ShadowPoints);
