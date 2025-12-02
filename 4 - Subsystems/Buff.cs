@@ -28,4 +28,16 @@ public abstract class Buff
     }
 
     public virtual EffectPlan ResolvePreflightEffects(){ return null; }
+
+    // New Hooks for Resource Modification Pipeline
+
+    // 1. Modify Outgoing: Called on the SOURCE's buffs when they initiate a resource change
+    public virtual int ModifyOutgoingResourceAmount(ResourceChangeOrder order, int currentAmount) {
+        return currentAmount;
+    }
+
+    // 2. Modify Incoming: Called on the TARGET's buffs when they receive a resource change
+    public virtual int ModifyIncomingResourceAmount(ResourceChangeOrder order, int currentAmount) {
+        return currentAmount;
+    }
 }

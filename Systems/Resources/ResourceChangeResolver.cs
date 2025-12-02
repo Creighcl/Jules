@@ -1,16 +1,81 @@
 using System;
+using System.Collections.Generic;
 
-public class DamageResolver {
+public class ResourceChangeResolver {
 
-    // Injectable rule. For now we instantiate default.
     private ElementInteractionRule InteractionRule = new ElementInteractionRule();
+    private Dictionary<string, IResourceLogic> LogicRegistry = new Dictionary<string, IResourceLogic>();
 
+    public ResourceChangeResolver() {
+        LogicRegistry["Health"] = new HealthResourceLogic();
+        LogicRegistry["Stagger"] = new StandardResourceLogic();
+    }
+
+    public ResourceChangeResult Resolve(ResourceChangeOrder order) {
+        Resource resource = order.Target.GetResource(order.Resource);
+
+        if (resource == null) {
+            order.Target.SetResource(order.Resource, order.Resource.DefaultMax);
+            resource = order.Target.GetResource(order.Resource);
+        }
+
+        // --- PIPELINE EXECUTION ---
+
+        // 1. Initial Amount
+        int currentAmount = order.Amount;
+
+        // 2. Outgoing Modifications (Attacker's Buffs/Traits)
+        if (order.Source != null) {
+            foreach(var buff in order.Source.Buffs) {
+                currentAmount = buff.ModifyOutgoingResourceAmount(order, currentAmount);
+            }
+        }
+
+        // 3. Incoming Modifications (Defender's Buffs/Traits)
+        if (order.Target != null) {
+            foreach(var buff in order.Target.Buffs) {
+                currentAmount = buff.ModifyIncomingResourceAmount(order, currentAmount);
+            }
+        }
+
+        // 4. Resource-Specific Logic (Application)
+        IResourceLogic logic = new StandardResourceLogic();
+        if (LogicRegistry.ContainsKey(order.Resource.Name)) {
+            logic = LogicRegistry[order.Resource.Name];
+        }
+
+        // Create a modified order for the final step (preserving original context)
+        // We might want to pass 'currentAmount' separately to Logic, but for now we clone the order or just trust the logic to use the amount.
+        // To be clean, let's create a transient order or assume logic uses 'currentAmount' if we passed it.
+        // But IResourceLogic interface takes 'ResourceChangeOrder'. Let's act as if we modified the order's intent effectively.
+        // A cleaner way is to update the order's Amount, OR pass it.
+        // Let's make a copy to avoid mutating the original intent record if we care about "Original vs Final" in the order object itself.
+        // Actually, ResourceChangeResult tracks "OriginalAmount" and "FinalAmount".
+
+        // We'll mutate a copy/proxy or just modify the amount passed to logic.
+        // Simpler: Just create a result here passing the modified amount to logic?
+        // Logic.Resolve typically DOES the math.
+        // Let's assume Logic.Resolve takes the order.Amount. So we need to update it.
+
+        ResourceChangeOrder processedOrder = new ResourceChangeOrder(
+            order.Source,
+            order.Target,
+            order.Resource,
+            currentAmount, // The modified amount
+            order.SourceEffect
+        );
+
+        ResourceChangeResult result = logic.Resolve(processedOrder, resource);
+        result.OriginalAmount = order.Amount; // Restore original intent for logging/events
+
+        return result;
+    }
+
+    // Legacy Support
     public CalculatedDamage ResolveOrder(DamageOrder order) {
         CalculatedDamage damage = CalculateDamageResult(order);
-
         damage.Target.TakeDamage(damage.DamageToHealth);
         damage.Target.TakeStagger(damage.DamageToStagger);
-
         return damage;
     }
 
