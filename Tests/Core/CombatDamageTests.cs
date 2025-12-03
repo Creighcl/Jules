@@ -54,9 +54,9 @@ public class CombatDamageTests
 
     private class MockBattlefieldProvider : IBattlefieldPositionProvider
     {
-        public BattlefieldPosition GetNextOpenBattlefieldPositionForTeam(List<int> takenSpotIds, TeamType team) => null;
-        public Character InstantiateNewCharacterForConfig(CharacterConfig config) => null;
-        public CharacterConfig GetConfigForUnitType(SummonableUnit unitType) => null;
+        public ICombatPosition GetNextOpenBattlefieldPositionForTeam(List<int> takenSpotIds, TeamType team) => null;
+        public Character InstantiateNewCharacterForConfig(ICharacterConfig config) => null;
+        public ICharacterConfig GetConfigForUnitType(SummonableUnit unitType) => null;
     }
 
     [Test]
