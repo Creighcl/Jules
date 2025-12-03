@@ -12,8 +12,8 @@ public class CharacterConfig : ScriptableObject
     
     [Tooltip("Elemental affinity of the character")]
     [SerializeField]
-    private ElementType _PowerType;
-    public ElementType PowerType => _PowerType;
+    private ElementType _ElementType;
+    public ElementType ElementType => _ElementType;
 
     [Tooltip("Team the character is on")]
     [SerializeField]
