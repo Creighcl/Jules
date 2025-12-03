@@ -2,14 +2,14 @@ using Spine.Unity;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "CharacterConfig", menuName = "GameOff2023/New Character Configuration")]
-public class CharacterConfig : ScriptableObject
+public class CharacterConfig : ScriptableObject, ICharacterConfig
 {
     [Header("Character Info")]
     [Tooltip("Name of the character")]
     [SerializeField]
     private string _Name;
     public string Name => _Name;
-    
+
     [Tooltip("Elemental affinity of the character")]
     [SerializeField]
     private ElementType _PowerType;
@@ -45,7 +45,7 @@ public class CharacterConfig : ScriptableObject
     [SerializeField]
     private UserAbilitySelection _SpecialAttack;
     public UserAbilitySelection SpecialAttack => _SpecialAttack;
-    
+
     [Tooltip("Ultimate Ability")]
     [SerializeField]
     private UserAbilitySelection _UltimateAbility;
@@ -54,9 +54,9 @@ public class CharacterConfig : ScriptableObject
     [SerializeField]
     private NativeBuffOption _NativeBuff;
     public NativeBuffOption NativeBuff => _NativeBuff;
-    
 
-    
+
+
 
     [Header("Starting Stats")]
     [Tooltip("Whole number percentage of base damage reduction")]

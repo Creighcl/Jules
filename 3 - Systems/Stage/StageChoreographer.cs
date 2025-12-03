@@ -37,8 +37,16 @@ public class StageChoreographer : MonoBehaviour
         _eventProvider.OnCharacterSummoned += HandleCharacterSummoned;
     }
 
+    ActorCharacter GetActor(Character character) {
+        if (character == null || character.ViewRef == null) return null;
+        var behavior = character.ViewRef as CharacterBehavior;
+        if (behavior == null) return null;
+        return behavior.GetComponent<ActorCharacter>();
+    }
+
     void HandleCharacterSummoned(Character character) {
-        MyActors.Add(character.GetComponent<ActorCharacter>());
+        var actor = GetActor(character);
+        if (actor != null) MyActors.Add(actor);
     }
 
     // void HandleStageComplete() {
@@ -53,7 +61,9 @@ public class StageChoreographer : MonoBehaviour
     // }
 
     void PolymorphCharacter(Character character, bool isPolymorphed) {
-        ActorCharacter actor = character.GetComponent<ActorCharacter>();
+        ActorCharacter actor = GetActor(character);
+        if (actor == null) return;
+
         if (isPolymorphed) {
             actor.EnqueuePerformance(CharacterActorPerformance.POLYMORPH);
         } else {
@@ -65,14 +75,14 @@ public class StageChoreographer : MonoBehaviour
         if (buff is BuffPolymorph) {
             PolymorphCharacter(buff.Target, true);
         }
-        buff.Target.GetComponent<ActorCharacter>().FloatingBuffDown(buff);
+        GetActor(buff.Target)?.FloatingBuffDown(buff);
     }
 
     void HandleBuffRemoved(Buff buff) {
         if (buff is BuffPolymorph) {
             PolymorphCharacter(buff.Target, false);
         }
-        buff.Target.GetComponent<ActorCharacter>().FloatingBuffUp(buff);
+        GetActor(buff.Target)?.FloatingBuffUp(buff);
     }
 
     // void HandleWaveReady(int waveNum) {
@@ -96,10 +106,13 @@ public class StageChoreographer : MonoBehaviour
     }
 
     void HandleEffectPlanExecutionStart(EffectPlan plan) {
+        var actor = GetActor(plan.Caster);
+        if (actor == null) return;
+
         if (plan.Source is AbilityBasicAttack) {
-            plan.Caster.GetComponent<ActorCharacter>().EnqueuePerformance(CharacterActorPerformance.BASICATTACK);
+            actor.EnqueuePerformance(CharacterActorPerformance.BASICATTACK);
         } else {
-            plan.Caster.GetComponent<ActorCharacter>().EnqueuePerformance(CharacterActorPerformance.SPECIALATTACK);
+            actor.EnqueuePerformance(CharacterActorPerformance.SPECIALATTACK);
         }
 
         if (plan.Source is AbilityHollowHowl) {
@@ -114,12 +127,13 @@ public class StageChoreographer : MonoBehaviour
         // } else {
         //     sourceMotor.EnqueuePerformance(CharacterActorPerformance.SPECIALATTACK);
         // }
-        ActorCharacter victimMotor = cd.Target.GetComponent<ActorCharacter>();
+        ActorCharacter victimMotor = GetActor(cd.Target);
+        if (victimMotor == null) return;
 
         victimMotor.FloatingDamageText(cd.DamageToHealth);
 
         if (cd.DamageToHealth > 0) {
-            
+
             victimMotor.EnqueuePerformance(CharacterActorPerformance.TAKEDAMAGE);
             if (cd.Target.isDead) {
                 victimMotor.EnqueuePerformance(CharacterActorPerformance.DIE);
@@ -134,6 +148,6 @@ public class StageChoreographer : MonoBehaviour
     }
 
     void HandleCharacterRevived(Character character) {
-        character.GetComponent<ActorCharacter>().EnqueuePerformance(CharacterActorPerformance.REVIVE);
+        GetActor(character)?.EnqueuePerformance(CharacterActorPerformance.REVIVE);
     }
 }

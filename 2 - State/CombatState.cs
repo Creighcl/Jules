@@ -179,7 +179,7 @@ public class CombatState
         ModifyDamageOrdersByScale(DamageOrders);
     }
 
-    void ExecuteEffectPlan(EffectPlan executionPlan) {
+    public void ExecuteEffectPlan(EffectPlan executionPlan) {
         FinalizeEffectPlan(executionPlan);
 
         _eventProvider.OnEffectPlanExecutionStart?.Invoke(executionPlan);
