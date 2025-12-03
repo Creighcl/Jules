@@ -8,12 +8,10 @@ public class ResourceChangeResolver {
     private Dictionary<string, IResourceLogic> LogicRegistry = new Dictionary<string, IResourceLogic>();
 
     public ResourceChangeResolver(IElementInteractionRule rule = null) {
-        // Fallback to default SO if not provided, assuming we are in Unity runtime.
-        // If testing in pure C#, the test MUST provide the rule.
+        // Fallback to default pure logic if not provided.
+        // This avoids instantiating ScriptableObject (ElementInteractionRule) via new().
         if (rule == null) {
-            // Legacy behavior: Instantiate the SO. This assumes Unity context.
-            // Pure tests will fail if they hit this line.
-            InteractionRule = new ElementInteractionRule();
+            InteractionRule = new StandardInteractionRule();
         } else {
             InteractionRule = rule;
         }

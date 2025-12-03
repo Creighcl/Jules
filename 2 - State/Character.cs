@@ -11,7 +11,7 @@ public class Character
     private IRandomService _randomService;
 
     // State
-    public Dictionary<ResourceType, Resource> Resources = new Dictionary<ResourceType, Resource>();
+    public Dictionary<IResourceType, Resource> Resources = new Dictionary<IResourceType, Resource>();
     public List<Buff> Buffs = new List<Buff>();
 
     // Properties (Backwards Compatibility / Helpers)
@@ -63,14 +63,14 @@ public class Character
 
     // --- Resource Management ---
 
-    public Resource GetResource(ResourceType type) {
+    public Resource GetResource(IResourceType type) {
         if (Resources.ContainsKey(type)) {
             return Resources[type];
         }
         return null;
     }
 
-    public void SetResource(ResourceType type, int value) {
+    public void SetResource(IResourceType type, int value) {
         if (!Resources.ContainsKey(type)) {
             Resources[type] = new Resource(type, type.DefaultMax);
         }
@@ -78,40 +78,8 @@ public class Character
     }
 
     // Helper for int properties (Health/Stagger)
-    // Note: We need a way to map "Health" -> ResourceType object without Unity assets.
-    // In a pure test, we can pass Mock ResourceTypes.
-    // But properties `currentHealth` rely on finding the specific ResourceType.
-    // I will defer `currentHealth` logic to be fully dynamic or require initialization.
-    // For now, I'll add backing fields for Health/Stagger to match the old behavior
-    // if Resource system isn't fully ready for pure C#.
-
     private int _legacyHealth = 1;
     private int _legacyStagger = 0;
-
-    private int GetResourceValue(ResourceType type) {
-        // Fallback to legacy fields if ResourceType is null (e.g. in tests without setup)
-        if (type == null) {
-            // This is tricky. The old code used ResourceType keys.
-            // I'll keep the backing fields as the source of truth for now
-            // to ensure tests work without complex ResourceType setup.
-            return (type?.Name == "Stagger") ? _legacyStagger : _legacyHealth;
-        }
-
-        if (Resources.ContainsKey(type)) return Resources[type].CurrentValue;
-        return 0;
-    }
-
-    private void SetResourceValue(ResourceType type, int value) {
-        if (type == null) {
-             // Identifying by context or just simple setters
-             return;
-        }
-
-        if (!Resources.ContainsKey(type)) {
-            Resources[type] = new Resource(type, type.DefaultMax);
-        }
-        Resources[type].CurrentValue = value;
-    }
 
     // --- Buff Management ---
 
