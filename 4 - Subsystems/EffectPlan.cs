@@ -8,14 +8,16 @@ public class EffectPlan
         Target = target;
         Source = source;
     }
-    
+
     public Character Caster;
     public Character Target;
     public Effect Source;
 
     public List<DamageOrder> DamageOrders = new List<DamageOrder>();
+    public List<ResourceChangeOrder> ResourceChangeOrders = new List<ResourceChangeOrder>();
 
     public List<CalculatedDamage> DamageResults = new List<CalculatedDamage>();
+    public List<ResourceChangeResult> ResourceChangeResults = new List<ResourceChangeResult>();
 
     public List<Buff> BuffOrders = new List<Buff>();
     public List<ReviveOrder> ReviveOrders = new List<ReviveOrder>();
@@ -38,6 +40,11 @@ public class EffectPlan
         return this;
     }
 
+    public EffectPlan Add(ResourceChangeOrder rco) {
+        ResourceChangeOrders.Add(rco);
+        return this;
+    }
+
     public EffectPlan Add(SummonOrder su) {
         SummonOrders.Add(su);
         return this;
@@ -54,6 +61,10 @@ public class EffectPlan
     }
     public EffectPlan Add(CalculatedDamage cd) {
         DamageResults.Add(cd);
+        return this;
+    }
+    public EffectPlan Add(ResourceChangeResult rcr) {
+        ResourceChangeResults.Add(rcr);
         return this;
     }
 }
