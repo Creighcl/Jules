@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+/// <summary>
+/// Pure C# Character class containing combat logic, decoupled from Unity MonoBehaviour.
+/// </summary>
 public class Character
 {
     // Configuration
