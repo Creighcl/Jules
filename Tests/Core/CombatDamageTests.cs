@@ -1,16 +1,28 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
-using UnityEngine; // Needed for ScriptableObject if we are mocking ElementType
 
 [TestFixture]
 public class CombatDamageTests
 {
-    // Mock Config
+    private class TestElementType : IElementType {
+        public string Name;
+    }
+
+    private class TestElementInteractionRule : IElementInteractionRule
+    {
+        public bool IsResistant(IElementType attacker, IElementType defender)
+        {
+            // For this test, we assume no resistance to keep math simple (10 dmg -> 10 taken)
+            // unless we specifically want to test resistance.
+            return false;
+        }
+    }
+
     private class TestCharacterConfig : ICharacterConfig
     {
         public string Name { get; set; } = "Test Char";
-        public ElementType PowerType { get; set; } // Set in Setup
+        public IElementType PowerType { get; set; }
         public TeamType TeamType { get; set; } = TeamType.PLAYER;
         public PCAdventureClassType PlayerClass { get; set; } = PCAdventureClassType.WARRIOR;
         public int ScaleBounty { get; set; } = 1;
@@ -32,7 +44,6 @@ public class CombatDamageTests
         public string WaveDefeatTaunt { get; set; } = "";
     }
 
-    // Mock Positioning System that does nothing
     private class MockPositioningSystem : IPositioningSystem
     {
         public int GetDistance(ICombatPosition a, ICombatPosition b) => 1;
@@ -41,27 +52,19 @@ public class CombatDamageTests
         public ICombatPosition GetPositionForCharacter(Character character) => null;
     }
 
-    // Mock Battlefield Provider
     private class MockBattlefieldProvider : IBattlefieldPositionProvider
     {
         public BattlefieldPosition GetNextOpenBattlefieldPositionForTeam(List<int> takenSpotIds, TeamType team) => null;
-        public Character InstantiateNewCharacterForConfig(CharacterConfig config) => null; // Not used in pure tests
+        public Character InstantiateNewCharacterForConfig(CharacterConfig config) => null;
         public CharacterConfig GetConfigForUnitType(SummonableUnit unitType) => null;
     }
 
     [Test]
-    public void BasicAttack_DealsExpectedDamage()
+    public void BasicAttack_DealsExpectedDamage_Integration()
     {
-        // Setup Types (ScriptableObjects)
-        // In a real Unity test environment, we might use ScriptableObject.CreateInstance
-        // In pure C#, we hope new works or we need a factory.
-        // Assuming 'new' works for the sake of this extracted logic test.
-        var physicalType = ScriptableObject.CreateInstance<ElementType>();
-        // Note: CreateInstance might fail if UnityEngine is not linked/initialized.
-        // If this test is run in Unity Test Runner, it works.
-        // If run in pure dotnet console, it fails.
-        // The user asked for "Battery of C# tests".
-        // I will assume Unity Test Runner for now as ElementType is an SO.
+        // Setup Types (POCOs)
+        var physicalType = new TestElementType { Name = "Physical" };
+        var rule = new TestElementInteractionRule();
 
         // Arrange
         var statsA = new TestCharacterConfig { Name = "Attacker", BaseAttackMin = 10, BaseAttackMax = 10, PowerType = physicalType };
@@ -69,20 +72,22 @@ public class CombatDamageTests
 
         var charA = new Character(statsA);
         var charB = new Character(statsB);
-
-        // Initialize state (usually done by CombatState)
         charA.FirstTimeInitialization();
         charB.FirstTimeInitialization();
 
-        var combatState = new CombatState(new EventProvider(), new MockBattlefieldProvider(), new MockPositioningSystem());
+        // Inject the rule into CombatState
+        var combatState = new CombatState(
+            new EventProvider(),
+            new MockBattlefieldProvider(),
+            new MockPositioningSystem(),
+            rule
+        );
+
         combatState.FullCombatantList.Add(charA);
         combatState.FullCombatantList.Add(charB);
         combatState.CurrentCombatant = charA;
 
-        // Setup an effect plan manually (simulating an ability)
-        var plan = new EffectPlan(null); // Source effect null for generic test
-
-        // Add a damage order
+        var plan = new EffectPlan(null);
         var damageOrder = new DamageOrder(charA, charB, 10, null);
         plan.Add(damageOrder);
 

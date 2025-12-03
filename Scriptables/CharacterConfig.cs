@@ -13,7 +13,14 @@ public class CharacterConfig : ScriptableObject, ICharacterConfig
     [Tooltip("Elemental affinity of the character")]
     [SerializeField]
     private ElementType _PowerType;
+    // Explicit interface implementation if implicit doesn't satisfy (covariant return)
+    // Or just public property if C# version allows.
+    // Unity 2021+ supports C# 9.
+    // However, explicit is safer for backward compatibility/clarity.
     public ElementType PowerType => _PowerType;
+
+    // Explicit implementation for the interface
+    IElementType ICharacterConfig.PowerType => _PowerType;
 
     [Tooltip("Team the character is on")]
     [SerializeField]

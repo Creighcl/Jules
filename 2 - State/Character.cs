@@ -162,6 +162,17 @@ public class Character
         return RemoveAgedBuffs();
     }
 
+    public void RemoveRandomDebuff() {
+        if (Buffs.Count == 0) return;
+
+        Buff randomDebuff = Buffs.Where(buff => buff.isDebuff).FirstOrDefault();
+
+        if (randomDebuff != null) {
+            Buffs.Remove(randomDebuff);
+            OnBuffRemoved?.Invoke(randomDebuff);
+        }
+    }
+
     List<Buff> RemoveAgedBuffs() {
         if (Buffs.Count == 0) return new List<Buff>();
 

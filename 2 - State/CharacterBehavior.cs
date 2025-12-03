@@ -78,16 +78,7 @@ public class CharacterBehavior : MonoBehaviour
     public List<AbilityCategory> GetAvailableAbilities(int LightPoints, int ShadowPoints) => Model?.GetAvailableAbilities(LightPoints, ShadowPoints);
     public void AddBuff(Buff newBuff) => Model?.AddBuff(newBuff);
     public List<Buff> AgeBuffsForPhase(CombatPhase phase) => Model?.AgeBuffsForPhase(phase);
-    public void RemoveRandomDebuff()
-    {
-        if (Model == null || Model.Buffs.Count == 0) return;
-        Buff randomDebuff = Model.Buffs.Where(buff => buff.isDebuff).FirstOrDefault();
-        if (randomDebuff != null) Model.RemoveBuff<BuffBlinded>(); // Hack: Generics are hard to dynamic invoke.
-        // Reimplementing logic locally because generics issue:
-        if (randomDebuff != null) {
-            Model.Buffs.Remove(randomDebuff);
-        }
-    }
+    public void RemoveRandomDebuff() => Model?.RemoveRandomDebuff();
     public void RemoveAllBuffs() => Model?.RemoveAllBuffs();
     public void RestoreStagger() => Model?.RestoreStagger();
 

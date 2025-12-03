@@ -1,7 +1,7 @@
 public interface ICharacterConfig
 {
     string Name { get; }
-    ElementType PowerType { get; }
+    IElementType PowerType { get; }
     TeamType TeamType { get; }
     PCAdventureClassType PlayerClass { get; }
     int ScaleBounty { get; }

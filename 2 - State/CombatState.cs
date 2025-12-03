@@ -15,11 +15,13 @@ public class CombatState
     public EventProvider _eventProvider;
     public IBattlefieldPositionProvider _bfpProvider;
     public IPositioningSystem _positioningSystem;
+    public IElementInteractionRule InteractionRule;
 
-    public CombatState(EventProvider eventProvider, IBattlefieldPositionProvider bfpProvider, IPositioningSystem positioningSystem) {
+    public CombatState(EventProvider eventProvider, IBattlefieldPositionProvider bfpProvider, IPositioningSystem positioningSystem, IElementInteractionRule rule = null) {
         _eventProvider = eventProvider;
         _bfpProvider = bfpProvider;
         _positioningSystem = positioningSystem;
+        InteractionRule = rule;
     }
 
     public void ClearWaveCounters() {
@@ -270,7 +272,7 @@ public class CombatState
     }
 
     void ResolveDamageOrders(EffectPlan _e) {
-        ResourceChangeResolver dr = new ResourceChangeResolver();
+        ResourceChangeResolver dr = new ResourceChangeResolver(InteractionRule);
         _e.DamageOrders.ForEach(damage => {
             CalculatedDamage dmgResult = dr.ResolveOrder(damage);
 
@@ -280,7 +282,7 @@ public class CombatState
     }
 
     void ResolveResourceChangeOrders(EffectPlan _e) {
-        ResourceChangeResolver dr = new ResourceChangeResolver();
+        ResourceChangeResolver dr = new ResourceChangeResolver(InteractionRule);
         _e.ResourceChangeOrders.ForEach(order => {
             ResourceChangeResult result = dr.Resolve(order);
             _e.Add(result);
