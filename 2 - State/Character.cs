@@ -52,17 +52,9 @@ public class Character
 
     private void InitializeResources()
     {
-        // We need ResourceType constants or a way to get them.
-        // Assuming ResourceType is an Enum or similar static definition.
-        // For now, I'll use the ones implied by the old code.
-
-        // Wait, ResourceType is a ScriptableObject in the original code.
-        // This is a dependency on Unity (ScriptableObject).
-        // To be truly pure, ResourceType should ideally be an Enum or a POCO.
-        // For this refactor, I will abstract ResourceType or treat it as an opaque key if possible.
-        // But the dictionary is `Dictionary<ResourceType, Resource>`.
-        // `Resource` class is likely pure C#. `ResourceType` is likely ScriptableObject.
-        // I need to check `ResourceType` definition.
+        // TODO: ResourceType is currently a ScriptableObject.
+        // Future refactor needed to abstract ResourceType (e.g. IResourceType)
+        // to populate the Resources dictionary purely.
     }
 
     public void SetPositionInfo(ICombatPosition pos) {
@@ -217,15 +209,8 @@ public class Character
 
     int GetCriticalRollChance() {
         int CRIT_CHANCE = 5;
-        // Logic relying on AttackTreeLevel which was hidden in the old class or config?
-        // Ah, Config has AttackTreeLevel (Mutable config?).
-        // In the old code: Config.AttackTreeLevel was modified.
-        // Modifying ScriptableObject at runtime is bad practice but it was there.
-        // We should move this state to Character.
-
-        // I will add the tree levels to Character state.
+        // TODO: Re-implement AttackTreeLevel logic using local state instead of mutating Config
         return CRIT_CHANCE;
-        // todo: reimplement tree check
     }
 
     float GetCriticalHitModifier() {

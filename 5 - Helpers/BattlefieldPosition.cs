@@ -9,7 +9,6 @@ public class BattlefieldPosition : ICombatPosition
         RelationalReferenceId = relationalReferenceId;
     }
 
-    // Explicit backing field or just property
     private Vector3 _position;
     public Vector3 Position
     {
