@@ -6,6 +6,7 @@ public class ResourceChangeResult
     public int OriginalAmount;
     public int FinalAmount;
     public int NewValue;
+    public bool WasMitigated;
     public Effect SourceEffect;
 
     public ResourceChangeResult(Character source, Character target, ResourceType resource, int originalAmount, int finalAmount, int newValue, Effect sourceEffect)

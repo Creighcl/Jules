@@ -7,7 +7,7 @@ This plan details the steps taken to genericize the RPG system, separating the c
 
 1.  **Define Positioning Interfaces**
     *   Create `Systems/Positioning/ICombatPosition.cs`: A marker interface for an entity's position.
-    *   Create `Systems/Positioning/IPositioningSystem.cs`: Interface for queries (`GetDistance`, `GetNeighbors`, `GetNearbyAllies`).
+    *   Create `Systems/Positioning/IPositioningSystem.cs`: Interface for queries (`GetDistance`, `GetNeighbors`, `GetAlliesNearby`).
     *   Create `Systems/Positioning/IBattlefieldPositionProvider.cs`: Formalize the missing provider interface.
 2.  **Refactor Character Positioning**
     *   Modify `Character.cs`: Replace `BattlefieldPosition` property with `ICombatPosition`.
