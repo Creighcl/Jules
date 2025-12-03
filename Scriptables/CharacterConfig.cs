@@ -65,7 +65,7 @@ public class CharacterConfig : ScriptableObject, ICharacterConfig
     [Header("Starting Stats")]
     [Tooltip("Whole number percentage of base damage reduction")]
     [SerializeField]
-    private int _BaseMitigation = 0;
+    private readonly int _BaseMitigation = 0;
     public int BaseMitigation => _BaseMitigation;
 
     [Tooltip("Starting Hit Point Maximum")]
