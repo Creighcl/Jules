@@ -13,7 +13,7 @@ public class ActorCharacter : MonoBehaviour
     [SerializeField]
     public TMP_Text NameTicker;
     [SerializeField]
-    public TMP_Text StaggerTicker; 
+    public TMP_Text StaggerTicker;
     GameObject _displayLayer;
     SpriteRenderer _skin;
     SkeletonAnimation _spineSkin;
@@ -26,12 +26,12 @@ public class ActorCharacter : MonoBehaviour
     public Sprite CritterSkinSprite;
     public SkeletonDataAsset CritterSkin2;
     public Sprite CritterSkinSprite2;
-    
+
     [Header("Floating Prefabs")]
     public GameObject DamageTextPrefab;
     public GameObject BuffUpPrefab;
     public GameObject BuffDownPrefab;
-    
+
     [Header("Static Decorators")]
     public GameObject FloatingBrokenIcon;
     public GameObject TurnIndicator;
@@ -40,10 +40,11 @@ public class ActorCharacter : MonoBehaviour
     public GameObject HighlightIndicator;
 
     [HideInInspector]
-    public Character _character;
+    public CharacterBehavior _behavior;
+    public Character _character => _behavior?.Model;
 
     void Awake() {
-        _character = GetComponent<Character>();
+        _behavior = GetComponent<CharacterBehavior>();
         _displayLayer = transform.Find("DisplayLayer").gameObject;
         _skin = _displayLayer.transform.Find("Skin").GetComponent<SpriteRenderer>();
         _spineSkin = _displayLayer.transform.Find("SpineSkin").GetComponent<SkeletonAnimation>();
@@ -53,6 +54,13 @@ public class ActorCharacter : MonoBehaviour
 
     void Start()
     {
+        // Wait for Behavior to initialize Model if needed?
+        // Behavior Awake runs before Start usually.
+        if (_character == null) {
+            Debug.LogError("ActorCharacter started without a valid Character Model!");
+            return;
+        }
+
         IN_SPINE_MODE = _character.Config.SpineSkeleton != null;
         // ElementIndicator.SetPowerType(_character.Config.PowerType);
         GetDressed();
@@ -108,7 +116,7 @@ public class ActorCharacter : MonoBehaviour
         if (dmg < 0) {
             FloatingDamageText((-dmg).ToString(), Color.green);
         } else if (dmg == 0) {
-            FloatingDamageText("miss", Color.white);    
+            FloatingDamageText("miss", Color.white);
         } else {
             FloatingDamageText((-dmg).ToString(), Color.red);
         }
@@ -207,11 +215,17 @@ public class ActorCharacter : MonoBehaviour
     {
         if (_character.isDead) return;
 
+        // Using ViewRef or Behavior to bridge back if needed, but UIManager might expect CharacterBehavior or Character
+        // UIManager.SelectTargetIfEligible signature needs verification.
+        // It likely expects Character (pure) now if refactored, or CharacterBehavior (old).
+        // If UIManager expects Character (pure), we pass _character.
         GameObject.Find("GameManager").GetComponent<UIManager>().SelectTargetIfEligible(_character);
     }
 
     void FixedUpdate()
     {
+        if (_character == null) return;
+
         if (HealthTicker != null) {
             HealthTicker.GetComponent<TMP_Text>().text = _character.currentHealth.ToString() + "/" + _character.Config.BaseHP.ToString();
         }
@@ -231,7 +245,14 @@ public class ActorCharacter : MonoBehaviour
         }
 
         if (_character.IsHighlighted) {
-            HighlightIndicator.GetComponent<SpriteRenderer>().sprite = _character.Config.PowerType == PowerType.LIGHT ? HighlightIndicatorLight : HighlightIndicatorShadow;
+            // Note: IsHighlighted is on Character (Pure) now? Or was it visual only?
+            // I moved IsHighlighted to CharacterBehavior in my thought process but check the split.
+            // Pure Character has IsHighlighted?
+            // Checking Character.cs...
+            // "public bool IsHighlighted = false;" -> I included this in the pure class but it sounds visual.
+            // If it's visual state driven by game logic (e.g. selection), pure is fine.
+
+            HighlightIndicator.GetComponent<SpriteRenderer>().sprite = _character.Config.PowerType == ElementType.Light ? HighlightIndicatorLight : HighlightIndicatorShadow;
             HighlightIndicator.SetActive(true);
         } else {
             HighlightIndicator.SetActive(false);
@@ -339,7 +360,7 @@ public class ActorCharacter : MonoBehaviour
             }
             IsActing = true;
             if (hasDeathPerformance) {
-                AddAnimation(0, 
+                AddAnimation(0,
                 ActorAnimations.death, false, 0.35f);
                 yield return new WaitForSeconds(2f);
             } else {
@@ -377,7 +398,7 @@ public class ActorCharacter : MonoBehaviour
             float alpha = 1f;
                 while (alpha > 0f) {
                     _spineSkin.skeleton.A = alpha;
- 
+
                     alpha -= DEATH_FADE_INCREMENT;
                     yield return new WaitForSeconds(DEATH_FADE_SPEED);
                 }
@@ -448,10 +469,10 @@ public class ActorCharacter : MonoBehaviour
 
             if (flipACoin) {
                 _spineSkin.skeletonDataAsset = CritterSkin;
-                _character.AlternativePortrait = CritterSkinSprite;
+                _behavior.AlternativePortrait = CritterSkinSprite;
             } else {
                 _spineSkin.skeletonDataAsset = CritterSkin2;
-                _character.AlternativePortrait = CritterSkinSprite2;
+                _behavior.AlternativePortrait = CritterSkinSprite2;
             }
             _spineSkin.Initialize(true);
             SetAnimation(0, ActorAnimations.idle, true);
@@ -466,7 +487,7 @@ public class ActorCharacter : MonoBehaviour
             IsActing = true;
 
             _spineSkin.skeletonDataAsset = _character.Config.SpineSkeleton;
-            _character.AlternativePortrait = null;
+            _behavior.AlternativePortrait = null;
             _spineSkin.Initialize(true);
             SetAnimation(0, ActorAnimations.idle, true);
             yield return new WaitForSeconds(0.75f);

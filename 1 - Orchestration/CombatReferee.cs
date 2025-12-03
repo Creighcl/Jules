@@ -284,7 +284,7 @@ public class CombatReferee : MonoBehaviour
     void ClearStage() {
         // make sure there aren't CPUs in the field
         foreach (Transform child in transform) {
-            Character checkChar = child.gameObject.GetComponent<Character>();
+            CharacterBehavior checkChar = child.gameObject.GetComponent<CharacterBehavior>();
             if (checkChar != null && checkChar.Config.TeamType == TeamType.CPU) {
                 Destroy(child.gameObject);
             }

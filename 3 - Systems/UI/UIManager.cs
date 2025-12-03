@@ -398,7 +398,7 @@ public class UIManager : MonoBehaviour
             AbilityUI.SetAvailableAbilities(availableAbilities);
             AbilityUI.ToggleToSelectedAbility((int) AbilityCategory.BASICATTACK);
             AbilityUI.gameObject.SetActive(true);
-            AbilityUI.gameObject.transform.position = combatant.transform.position + new Vector3(-2.5f, 3.35f, .25f);
+            AbilityUI.gameObject.transform.position = combatant.PositionInfo.Position + new Vector3(-2.5f, 3.35f, .25f);
             CurrentSelectionState = SelectionState.ABILITY;
         }
     }

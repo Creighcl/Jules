@@ -1,5 +1,6 @@
+using UnityEngine;
 
 public interface ICombatPosition
 {
-    // Marker interface for now, can expand later if needed.
+    Vector3 Position { get; }
 }

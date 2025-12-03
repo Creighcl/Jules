@@ -3,10 +3,19 @@ using System.Collections.Generic;
 
 public class ResourceChangeResolver {
 
-    private ElementInteractionRule InteractionRule = new ElementInteractionRule();
+    // Now allows injection of a rule logic, default can be SO-based or pure
+    private IElementInteractionRule InteractionRule;
     private Dictionary<string, IResourceLogic> LogicRegistry = new Dictionary<string, IResourceLogic>();
 
-    public ResourceChangeResolver() {
+    public ResourceChangeResolver(IElementInteractionRule rule = null) {
+        // Fallback to default pure logic if not provided.
+        // This avoids instantiating ScriptableObject (ElementInteractionRule) via new().
+        if (rule == null) {
+            InteractionRule = new StandardInteractionRule();
+        } else {
+            InteractionRule = rule;
+        }
+
         LogicRegistry["Health"] = new HealthResourceLogic();
         LogicRegistry["Stagger"] = new StandardResourceLogic();
     }
@@ -19,59 +28,39 @@ public class ResourceChangeResolver {
             resource = order.Target.GetResource(order.Resource);
         }
 
-        // --- PIPELINE EXECUTION ---
-
-        // 1. Initial Amount
         int currentAmount = order.Amount;
 
-        // 2. Outgoing Modifications (Attacker's Buffs/Traits)
         if (order.Source != null) {
             foreach(var buff in order.Source.Buffs) {
                 currentAmount = buff.ModifyOutgoingResourceAmount(order, currentAmount);
             }
         }
 
-        // 3. Incoming Modifications (Defender's Buffs/Traits)
         if (order.Target != null) {
             foreach(var buff in order.Target.Buffs) {
                 currentAmount = buff.ModifyIncomingResourceAmount(order, currentAmount);
             }
         }
 
-        // 4. Resource-Specific Logic (Application)
         IResourceLogic logic = new StandardResourceLogic();
         if (LogicRegistry.ContainsKey(order.Resource.Name)) {
             logic = LogicRegistry[order.Resource.Name];
         }
 
-        // Create a modified order for the final step (preserving original context)
-        // We might want to pass 'currentAmount' separately to Logic, but for now we clone the order or just trust the logic to use the amount.
-        // To be clean, let's create a transient order or assume logic uses 'currentAmount' if we passed it.
-        // But IResourceLogic interface takes 'ResourceChangeOrder'. Let's act as if we modified the order's intent effectively.
-        // A cleaner way is to update the order's Amount, OR pass it.
-        // Let's make a copy to avoid mutating the original intent record if we care about "Original vs Final" in the order object itself.
-        // Actually, ResourceChangeResult tracks "OriginalAmount" and "FinalAmount".
-
-        // We'll mutate a copy/proxy or just modify the amount passed to logic.
-        // Simpler: Just create a result here passing the modified amount to logic?
-        // Logic.Resolve typically DOES the math.
-        // Let's assume Logic.Resolve takes the order.Amount. So we need to update it.
-
         ResourceChangeOrder processedOrder = new ResourceChangeOrder(
             order.Source,
             order.Target,
             order.Resource,
-            currentAmount, // The modified amount
+            currentAmount,
             order.SourceEffect
         );
 
         ResourceChangeResult result = logic.Resolve(processedOrder, resource);
-        result.OriginalAmount = order.Amount; // Restore original intent for logging/events
+        result.OriginalAmount = order.Amount;
 
         return result;
     }
 
-    // Legacy Support
     public CalculatedDamage ResolveOrder(DamageOrder order) {
         CalculatedDamage damage = CalculateDamageResult(order);
         damage.Target.TakeDamage(damage.DamageToHealth);
@@ -151,8 +140,7 @@ public class ResourceChangeResolver {
         return result;
     }
 
-    int GetUnmitigatedDamageFromRaw(int rawDamage, Character target, ElementType effectPowerType) {
-        // mitigation is zero if rawDamage is negative, this is a heal
+    int GetUnmitigatedDamageFromRaw(int rawDamage, Character target, IElementType effectPowerType) {
         if (rawDamage < 0) {
             return rawDamage;
         }
@@ -170,18 +158,18 @@ public class ResourceChangeResolver {
         return unmitigatedDamage;
     }
 
-    int GetMitigationPowerForPowerType(Character victim, ElementType element) {
+    int GetMitigationPowerForPowerType(Character victim, IElementType element) {
         bool IsResistant =  IsVictimResistantToPowerType(victim, element);
         int MitigationPower = IsResistant ? 10 : 0;
         return MitigationPower;
     }
 
-    int GetFullVictimMitigationPower(Character victim, ElementType element) {
-        if (victim == null || victim.Config == null) return 0; //WHY WOULD THIS HAPPEN???
+    int GetFullVictimMitigationPower(Character victim, IElementType element) {
+        if (victim == null || victim.Config == null) return 0;
         return victim.Config.BaseMitigation + GetMitigationPowerForPowerType(victim, element);
     }
 
-    bool IsVictimResistantToPowerType(Character victim, ElementType element) {
+    bool IsVictimResistantToPowerType(Character victim, IElementType element) {
         if (victim.HasBuff<BuffSkeletalShield>()) {
             return true;
         }
@@ -193,7 +181,7 @@ public class ResourceChangeResolver {
         return InteractionRule.IsResistant(element, victim.Config.PowerType);
     }
 
-    ElementType GetPowerTypeOfCharacter(Character character) {
+    IElementType GetPowerTypeOfCharacter(Character character) {
         return character.Config.PowerType;
     }
 }

@@ -8,7 +8,14 @@ public class BattlefieldPosition : ICombatPosition
         SpotId = spotId;
         RelationalReferenceId = relationalReferenceId;
     }
-    public Vector3 Position;
+
+    private Vector3 _position;
+    public Vector3 Position
+    {
+        get { return _position; }
+        set { _position = value; }
+    }
+
     public int SpotId = -10;
     public int RelationalReferenceId = -10;
 }
